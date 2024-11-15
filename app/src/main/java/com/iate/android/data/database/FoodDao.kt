@@ -1,5 +1,7 @@
 package com.iate.android.data.database
 
+import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.iate.android.data.database.entity.Food
 import kotlinx.coroutines.flow.Flow
@@ -11,13 +13,13 @@ interface FoodDao {
     suspend fun addFood(food: Food)
 
     @Query("SELECT * FROM foods")
-    fun getFoods(): Flow<List<Food>>
+    fun getFoods(): LiveData<List<Food>>
 
     @Query("SELECT * FROM foods WHERE date = :date")
-    fun getFoodsByDate(date: String): Flow<List<Food>>
+    fun getFoodsByDate(date: String): List<Food>
 
     @Query("SELECT * FROM foods WHERE date BETWEEN :startDate AND :endDate")
-    fun getFoodsByDateRange(startDate: String, endDate: String): Flow<List<Food>>
+    fun getFoodsByDateRange(startDate: String, endDate: String): LiveData<List<Food>>
 
     @Delete
     suspend fun deleteFood(food: Food)

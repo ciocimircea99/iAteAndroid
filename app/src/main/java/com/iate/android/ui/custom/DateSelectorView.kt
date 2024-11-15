@@ -1,6 +1,5 @@
 package com.iate.android.ui.custom
 
-import DateTimeUtil
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -9,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.iate.android.R
+import com.iate.android.util.DateTimeUtil
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale

@@ -1,6 +1,5 @@
 package com.iate.android.ui.fragments
 
-import DateTimeUtil
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -10,10 +9,9 @@ import com.iate.android.ui.base.BaseFragment
 import com.iate.android.ui.custom.DateSelectorView
 import com.iate.android.ui.custom.FoodItemView
 import com.iate.android.ui.viewmodel.MainViewModel
-import kotlinx.coroutines.flow.collectLatest
+import com.iate.android.util.DateTimeUtil
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import java.util.Date
 
 class MainFragment :
     BaseFragment<FragmentMainBinding, MainViewModel>(FragmentMainBinding::inflate) {
@@ -26,7 +24,7 @@ class MainFragment :
 
         // Observe food list updates
         lifecycleScope.launch {
-            viewModel.foodList.collectLatest { foodList ->
+            viewModel.foodList.observe(viewLifecycleOwner) { foodList ->
                 binding.foodContainer.removeAllViews()
                 foodList.forEach { food ->
                     binding.foodContainer.addView(
@@ -38,15 +36,10 @@ class MainFragment :
                     )
                 }
             }
-        }
 
-        // Observe errors
-        lifecycleScope.launch {
-            viewModel.errorResult.collectLatest { error ->
+            viewModel.errorResult.observe(viewLifecycleOwner) { error ->
                 error?.let {
-                    // Display error message in case of an error
-                    Toast.makeText(requireContext(), "Error: ${error.message}", Toast.LENGTH_LONG)
-                        .show()
+                    Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
