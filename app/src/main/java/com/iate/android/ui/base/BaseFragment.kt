@@ -6,17 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
 
 abstract class BaseFragment<B : ViewBinding, VM : ViewModel>(
     private val inflateBinding: (LayoutInflater, ViewGroup?, Boolean) -> B
 ) : Fragment() {
 
-    // ViewModel instance initialized lazily
-    protected val viewModel: VM by lazy {
-        ViewModelProvider(this)[getViewModelClass()]
-    }
+    // Use Koin to inject ViewModel
+    protected abstract val viewModel: VM
 
     // ViewBinding instance
     private var _binding: B? = null
@@ -32,9 +29,10 @@ abstract class BaseFragment<B : ViewBinding, VM : ViewModel>(
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null // Clear binding reference to prevent memory leaks
+        _binding = null // Prevent memory leaks
     }
 
-    // Abstract method to provide the ViewModel class type
-    protected abstract fun getViewModelClass(): Class<VM>
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+    }
 }

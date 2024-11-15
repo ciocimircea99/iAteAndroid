@@ -5,10 +5,11 @@ import android.view.View
 import com.iate.android.databinding.FragmentSettingsBinding
 import com.iate.android.ui.base.BaseFragment
 import com.iate.android.ui.viewmodel.SettingsViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SettingsFragment : BaseFragment<FragmentSettingsBinding, SettingsViewModel>(FragmentSettingsBinding::inflate) {
 
-    override fun getViewModelClass() = SettingsViewModel::class.java
+    override val viewModel: SettingsViewModel by viewModel()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

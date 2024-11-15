@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id 'kotlin-kapt'
     id 'kotlin-parcelize'
+    id 'com.google.devtools.ksp'
 }
 
 android {
@@ -26,15 +26,24 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Add the API key to BuildConfig for debug builds
+            buildConfigField "String", "OPENAI_API_KEY", "\"${OPENAI_API_KEY}\""
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            // Add the API key to BuildConfig for release builds
+            buildConfigField "String", "OPENAI_API_KEY", "\"${OPENAI_API_KEY}\""
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
@@ -48,18 +57,26 @@ dependencies {
     implementation libs.androidx.constraintlayout
     implementation libs.androidx.databinding.runtime
 
-
     implementation libs.lifecycle.viewmodel.ktx
     implementation libs.androidx.lifecycle.livedata.ktx
     implementation libs.androidx.fragment.ktx
-
 
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.navigation.fragment
     implementation libs.androidx.navigation.ui
     implementation libs.androidx.navigation.dynamic.features.fragment
     androidTestImplementation libs.androidx.navigation.testing
-    
+
+    implementation libs.koin.android
+
+    implementation libs.retrofit
+    implementation libs.converter.gson
+    implementation libs.okhttp
+    implementation libs.logging.interceptor
+
+    implementation libs.androidx.room.runtime
+    implementation libs.androidx.room.ktx
+    ksp libs.androidx.room.compiler
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit

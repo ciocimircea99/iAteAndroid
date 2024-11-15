@@ -5,10 +5,11 @@ import android.view.View
 import com.iate.android.databinding.FragmentMainBinding
 import com.iate.android.ui.base.BaseFragment
 import com.iate.android.ui.viewmodel.MainViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainFragment : BaseFragment<FragmentMainBinding, MainViewModel>(FragmentMainBinding::inflate) {
 
-    override fun getViewModelClass() = MainViewModel::class.java
+    override val viewModel: MainViewModel by viewModel()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
