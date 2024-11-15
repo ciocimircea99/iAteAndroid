@@ -1,5 +1,6 @@
 package com.iate.android.ui.custom
 
+import DateTimeUtil
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -26,6 +27,9 @@ class DateSelectorView @JvmOverloads constructor(
     private lateinit var selectedDateView: TextView
     private lateinit var daysContainer: LinearLayout
     private val dayViews = mutableListOf<TextView>()
+
+    // Listener for date selection changes
+    var dateSelectedListener: OnDateSelectedListener? = null
 
     init {
         LayoutInflater.from(context).inflate(R.layout.view_date_selector, this, true)
@@ -94,6 +98,9 @@ class DateSelectorView @JvmOverloads constructor(
 
         // Update the selected date display below
         selectedDateView.text = dateFormat.format(selectedCalendar.time)
+
+        // Notify the listener of the new selected date in ISO format
+        dateSelectedListener?.onDateSelected(DateTimeUtil.millisToIso8601(selectedCalendar.time.time))
     }
 
     private fun onDayClicked(offset: Int) {
@@ -117,5 +124,10 @@ class DateSelectorView @JvmOverloads constructor(
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                 cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+    }
+
+    // Interface to notify date changes in ISO 8601 format
+    interface OnDateSelectedListener {
+        fun onDateSelected(date: String) // Pass date as ISO 8601 formatted string
     }
 }

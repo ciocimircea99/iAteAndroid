@@ -1,5 +1,6 @@
 package com.iate.android.ui.viewmodel
 
+import DateTimeUtil
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
+import java.util.Date
 
 class MainViewModel(
     private val foodDao: FoodDao,
@@ -26,22 +28,8 @@ class MainViewModel(
     private val _foodList = MutableStateFlow<List<Food>>(emptyList())
     val foodList: StateFlow<List<Food>> = _foodList
 
-    init {
-        fetchFoods() // Call this on initialization to load food data from the database
-    }
-
-    private fun fetchFoods() {
-        viewModelScope.launch {
-            try {
-                // Collecting the list of foods from the DAO as a flow
-                foodDao.getFoods().collectLatest { foods ->
-                    _foodList.emit(foods) // Emit the list of foods
-                }
-            } catch (e: Exception) {
-                _errorResult.emit(e) // Emit the error in case of exception
-            }
-        }
-    }
+    private val _selectedDate = MutableStateFlow("")
+    val selectedDate: StateFlow<String> = _selectedDate
 
     fun addFood(foodDescription: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -85,7 +73,7 @@ class MainViewModel(
                         name = name,
                         calories = calories,
                         grams = grams,
-                        date = System.currentTimeMillis().toString() // Use appropriate date format
+                        date = _selectedDate.value // Use appropriate date format
                     )
 
                     // Save to the database
@@ -111,5 +99,23 @@ class MainViewModel(
                 _errorResult.emit(e)
             }
         }
+    }
+
+    private fun fetchAllFoods(date: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                foodDao.getFoodsByDate(date).collectLatest { foods ->
+                    _foodList.emit(foods) // Emit the list of foods
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _errorResult.emit(e)
+            }
+        }
+    }
+
+    fun setDate(date: String) {
+        _selectedDate.value = date
+        fetchAllFoods(date)
     }
 }
