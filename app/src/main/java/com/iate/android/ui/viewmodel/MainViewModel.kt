@@ -9,6 +9,7 @@ import com.iate.android.data.database.entity.Food
 import com.iate.android.data.openai.OpenAIApi
 import com.iate.android.data.openai.model.ChatMessage
 import com.iate.android.data.openai.model.CompletionRequest
+import com.iate.android.util.SingleLiveEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -17,8 +18,8 @@ class MainViewModel(
     private val openAIApi: OpenAIApi
 ) : ViewModel() {
 
-    private val _errorResult = MutableLiveData<Exception?>()
-    val errorResult: LiveData<Exception?> = _errorResult
+    private val _errorResult = SingleLiveEvent<Exception?>()
+    val errorResult: MutableLiveData<Exception?> = _errorResult
 
     private val _selectedDate = MutableLiveData<String>()
     val selectedDate: LiveData<String> = _selectedDate

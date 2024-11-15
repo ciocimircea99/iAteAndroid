@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.iate.android.R
 import com.iate.android.databinding.FragmentMainBinding
 import com.iate.android.ui.base.BaseFragment
 import com.iate.android.ui.custom.DateSelectorView
@@ -39,7 +41,8 @@ class MainFragment :
 
             viewModel.errorResult.observe(viewLifecycleOwner) { error ->
                 error?.let {
-                    Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG)
+                        .show()
                 }
             }
         }
@@ -48,11 +51,20 @@ class MainFragment :
             viewModel.addFood(binding.foodDescription.text.toString())
         }
 
-        binding.dateSelector.dateSelectedListener = object : DateSelectorView.OnDateSelectedListener {
-            override fun onDateSelected(date: String) {
-                viewModel.setDate(date)
-            }
+        binding.buttonHistory.setOnClickListener {
+            findNavController().navigate(R.id.action_fragment_main_to_historyFragment)
         }
+
+        binding.buttonSettings.setOnClickListener {
+            findNavController().navigate(R.id.action_fragment_main_to_settingsFragment)
+        }
+
+        binding.dateSelector.dateSelectedListener =
+            object : DateSelectorView.OnDateSelectedListener {
+                override fun onDateSelected(date: String) {
+                    viewModel.setDate(date)
+                }
+            }
 
         viewModel.setDate(DateTimeUtil.currentTimeMillisToIso8601())
     }
