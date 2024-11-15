@@ -2,4 +2,9 @@
     <string name="app_name">iAte</string>
     <string name="history">History</string>
     <string name="settings">Settings</string>
+    <string name="total_calories">Total calories</string>
+    <string name="bmr">BMR</string>
+    <string name="calorie_deficit">Calorie deficit</string>
+    <string name="send">Send</string>
+    <string name="describe_what_you_ate">Describe what you ate</string>
 </resources>
