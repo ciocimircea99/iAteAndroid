@@ -1,29 +1,46 @@
 package com.iate.android.ui.viewmodel
 
 import android.util.Log
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iate.android.data.database.FoodDao
 import com.iate.android.data.database.entity.Food
 import com.iate.android.data.openai.OpenAIApi
 import com.iate.android.data.openai.model.ChatMessage
 import com.iate.android.data.openai.model.CompletionRequest
-import com.iate.android.ui.base.BaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 
 class MainViewModel(
     private val foodDao: FoodDao,
     private val openAIApi: OpenAIApi
-) : BaseViewModel(), KoinComponent {
+) : ViewModel(), KoinComponent {
 
-    private val _foodResult = MutableStateFlow<Result<Food>?>(null)
-    val foodResult: StateFlow<Result<Food>?> = _foodResult
+    private val _errorResult = MutableStateFlow<Exception?>(null)
+    val errorResult: StateFlow<Exception?> = _errorResult
+
+    private val _foodList = MutableStateFlow<List<Food>>(emptyList())
+    val foodList: StateFlow<List<Food>> = _foodList
 
     init {
-        Log.d("MainViewModel", "FoodDao instance: $foodDao")
+        fetchFoods() // Call this on initialization to load food data from the database
+    }
+
+    private fun fetchFoods() {
+        viewModelScope.launch {
+            try {
+                // Collecting the list of foods from the DAO as a flow
+                foodDao.getFoods().collectLatest { foods ->
+                    _foodList.emit(foods) // Emit the list of foods
+                }
+            } catch (e: Exception) {
+                _errorResult.emit(e) // Emit the error in case of exception
+            }
+        }
     }
 
     fun addFood(foodDescription: String) {
@@ -74,14 +91,24 @@ class MainViewModel(
                     // Save to the database
                     foodDao.addFood(food)
 
-                    // Emit the result
-                    _foodResult.emit(Result.success(food))
+                    // No need to emit success here as the list will be updated by `fetchFoods()`
                 } else {
-                    _foodResult.emit(Result.failure(Exception("Failed to parse API response")))
+                    _errorResult.emit(Exception("Failed to parse API response"))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _foodResult.emit(Result.failure(e))
+                _errorResult.emit(e)
+            }
+        }
+    }
+
+    fun deleteFood(food: Food) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                foodDao.deleteFood(food)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _errorResult.emit(e)
             }
         }
     }
