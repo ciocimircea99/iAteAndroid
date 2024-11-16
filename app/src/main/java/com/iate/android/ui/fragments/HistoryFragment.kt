@@ -24,6 +24,7 @@ import com.iate.android.util.ResourcesUtil
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.time.LocalDate
+import java.time.Year
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.abs
@@ -61,17 +62,41 @@ class HistoryFragment :
                 initDailyChart(totalCalories, userSettings.tdee)
             }
             viewModel.weeklyFoodListAndUserSettings.observe(viewLifecycleOwner) { foodListAndUserSettings ->
-                val foodList = foodListAndUserSettings.first
-                val userSettings = foodListAndUserSettings.second
+                val foodList = foodListAndUserSettings.first  // List of foods consumed during the week
+                val userSettings = foodListAndUserSettings.second  // User settings (including TDEE)
 
-                val totalCalories = foodList.sumOf { it.calories }
-                val calorieDeficit = (userSettings.tdee * 7) - totalCalories
+                // Get the current week and calculate the number of days in the week (7 days)
+                val today = LocalDate.now(ZoneId.systemDefault())  // Get the current date
+                val daysInWeek = 7  // Always 7 days in a week
 
-                binding.weeklySummary.calories.text = totalCalories.toString()
-                binding.weeklySummary.bmr.text = (userSettings.tdee * 7).toString()
-                binding.weeklySummary.calorieDeficit.text = (calorieDeficit).toString()
+                // Create an array to track total calories for each day of the week
+                val dailyCalories = IntArray(daysInWeek)  // Array to store calories for each day (0 to 6)
+
+                // Group food items by day of the week and sum the calories for each day
+                for (food in foodList) {
+                    val dayOfWeek = getDayOfWeek(food.date)  // Get the day of the week (0 = Sunday, 6 = Saturday)
+                    if (dayOfWeek in 0 until daysInWeek) {
+                        dailyCalories[dayOfWeek] += food.calories  // Add the food's calories to the appropriate day
+                    }
+                }
+
+                // Calculate total calories for the week, including days with no food entries (assuming TDEE for those days)
+                var totalCalories = 0
+                for (i in 0 until daysInWeek) {
+                    totalCalories += if (dailyCalories[i] == 0) userSettings.tdee else dailyCalories[i]
+                }
+
+                // Estimate the calorie deficit for the week
+                val weeklyBmr = userSettings.tdee * daysInWeek  // Total TDEE for the week (TDEE * 7 days)
+                val calorieDeficit = weeklyBmr - totalCalories  // Calorie deficit (or surplus)
+
+                // Update the weekly summary text views
+                binding.weeklySummary.calories.text = totalCalories.toString()  // Total calories consumed in the week
+                binding.weeklySummary.bmr.text = weeklyBmr.toString()  // Total weekly BMR (TDEE * 7)
+                binding.weeklySummary.calorieDeficit.text = calorieDeficit.toString()
                 binding.weeklySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
 
+                // Display estimated weight change (loss or gain)
                 if (calorieDeficit < 0) {
                     binding.weeklySummary.labelWeightChange.text =
                         getString(R.string.estimated_weight_gained)
@@ -80,13 +105,300 @@ class HistoryFragment :
                         getString(R.string.estimated_weight_lost)
                 }
 
+                // Initialize the weekly chart with food data and TDEE
                 initWeeklyChart(foodList, userSettings.tdee)
+            }
+            viewModel.monthlyFoodListAndUserSettings.observe(viewLifecycleOwner) { foodListAndUserSettings ->
+                val foodList = foodListAndUserSettings.first  // List of foods consumed during the month
+                val userSettings = foodListAndUserSettings.second  // User settings (including TDEE)
+
+                // Get the current month and calculate the number of days in the month
+                val today = LocalDate.now(ZoneId.systemDefault())  // Get the current date
+                val daysInMonth = today.lengthOfMonth()  // Get the number of days in the current month (28, 29, 30, or 31)
+
+                // Create an array to track total calories for each day of the month
+                val dailyCalories = IntArray(daysInMonth)
+
+                // Group food items by day of the month and sum the calories for each day
+                for (food in foodList) {
+                    val dayOfMonth = getDayOfMonth(food.date)  // Get the day of the month (1 to 31)
+                    if (dayOfMonth in 1..daysInMonth) {
+                        dailyCalories[dayOfMonth - 1] += food.calories  // Add the food's calories to the appropriate day
+                    }
+                }
+
+                // Calculate total calories for the month, including days with no food entries (assuming TDEE for those days)
+                var totalCalories = 0
+                for (i in 0 until daysInMonth) {
+                    totalCalories += if (dailyCalories[i] == 0) userSettings.tdee else dailyCalories[i]
+                }
+
+                // Estimate the calorie deficit for the month
+                val monthlyBmr = userSettings.tdee * daysInMonth  // Total TDEE for the month (TDEE * days in month)
+                val calorieDeficit = monthlyBmr - totalCalories  // Calorie deficit (or surplus)
+
+                // Update the monthly summary text views
+                binding.monthlySummary.calories.text = totalCalories.toString()  // Total calories consumed in the month
+                binding.monthlySummary.bmr.text = monthlyBmr.toString()  // Total monthly BMR (TDEE * days in month)
+                binding.monthlySummary.calorieDeficit.text = calorieDeficit.toString()
+                binding.monthlySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
+
+                // Display estimated weight change (loss or gain)
+                if (calorieDeficit < 0) {
+                    binding.monthlySummary.labelWeightChange.text =
+                        getString(R.string.estimated_weight_gained)
+                } else {
+                    binding.monthlySummary.labelWeightChange.text =
+                        getString(R.string.estimated_weight_lost)
+                }
+
+                // Initialize the monthly chart with food data and TDEE
+                initMonthlyChart(foodList, userSettings.tdee)
+            }
+            viewModel.yearlyFoodListAndUserSettings.observe(viewLifecycleOwner) { foodListAndUserSettings ->
+                val foodList = foodListAndUserSettings.first  // List of foods consumed during the year
+                val userSettings = foodListAndUserSettings.second  // User settings (including TDEE)
+
+                // Get the number of days in the year (365 or 366 for leap years)
+                val today = LocalDate.now(ZoneId.systemDefault())  // Get the current date
+                val daysInYear = if (today.isLeapYear) 366 else 365  // Adjust for leap year
+
+                // Create an array to track total calories for each day of the year
+                val dailyCalories = IntArray(daysInYear)  // Array for storing calories for each day of the year
+
+                // Group food items by day of the year and sum the calories for each day
+                for (food in foodList) {
+                    val dayOfYear = getDayOfYear(food.date)  // Get the day of the year (1 to 365 or 366)
+                    if (dayOfYear in 1..daysInYear) {
+                        dailyCalories[dayOfYear - 1] += food.calories  // Add the food's calories to the appropriate day
+                    }
+                }
+
+                // Calculate total calories for the year, including days with no food entries (assuming TDEE for those days)
+                var totalCalories = 0
+                for (i in 0 until daysInYear) {
+                    totalCalories += if (dailyCalories[i] == 0) userSettings.tdee else dailyCalories[i]
+                }
+
+                // Estimate the calorie deficit for the year
+                val yearlyBmr = userSettings.tdee * daysInYear  // Total TDEE for the year (TDEE * number of days)
+                val calorieDeficit = yearlyBmr - totalCalories  // Calorie deficit (or surplus)
+
+                // Estimate weight change (1 kg = 7700 calories)
+                val weightChange = calorieDeficit / 7700.0  // Weight change in kg
+
+                // Update the yearly summary UI
+                binding.yearlySummary.calories.text = totalCalories.toString()  // Total calories consumed in the year
+                binding.yearlySummary.bmr.text = yearlyBmr.toString()  // Total yearly BMR (TDEE * days in year)
+                binding.yearlySummary.calorieDeficit.text = calorieDeficit.toString()
+                binding.yearlySummary.weightChange.text = weightChange.toString()
+
+                // Display estimated weight change (gain or loss)
+                if (calorieDeficit < 0) {
+                    binding.yearlySummary.labelWeightChange.text =
+                        getString(R.string.estimated_weight_gained)
+                } else {
+                    binding.yearlySummary.labelWeightChange.text =
+                        getString(R.string.estimated_weight_lost)
+                }
+
+                // Initialize the yearly chart with food data and TDEE
+                initYearlyChart(foodList, userSettings.tdee)
             }
         }
 
         binding.buttonBack.setOnClickListener {
             findNavController().popBackStack()
         }
+    }
+
+    private fun initYearlyChart(foodList: List<Food>, tdee: Int) {
+        // Find the LineChart by its ID
+        val lineChart = binding.yearlyChart  // Assuming you have a yearly chart in your layout
+
+        // Get the primary color from the theme using ResourcesUtil
+        val primaryColor = ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
+
+        // Create a list of entries for the LineChart (each entry represents a month's total calories)
+        val lineEntries = ArrayList<Entry>()
+        val bmrEntries = ArrayList<Entry>() // Entries for the TDEE line (BMR)
+
+        // Create an array to track total calories for each month (12 months in a year)
+        val monthlyCalories = IntArray(12)  // Array for storing total calories for each month
+
+        // Get the current year and check if it's a leap year
+        val isLeapYear = LocalDate.now().isLeapYear
+
+        // Define the days in each month (adjust February days for leap year)
+        val daysInMonth = intArrayOf(
+            31,  // January
+            if (isLeapYear) 29 else 28,  // February (29 days for leap year, otherwise 28)
+            31,  // March
+            30,  // April
+            31,  // May
+            30,  // June
+            31,  // July
+            31,  // August
+            30,  // September
+            31,  // October
+            30,  // November
+            31   // December
+        )
+
+        // Group food items by month and sum the calories for each month
+        for (food in foodList) {
+            val month = getMonthFromDate(food.date)  // Get the month (0 = January, 11 = December)
+            if (month in 0..11) {
+                monthlyCalories[month] += food.calories  // Add the food's calories to the appropriate month
+            }
+        }
+
+        // Add entries for each month (January to December)
+        for (i in 0 until 12) {
+            // Get the total calories for the month (use TDEE if no calories were consumed that month)
+            val caloriesForTheMonth = if (monthlyCalories[i] == 0) tdee * daysInMonth[i] else monthlyCalories[i]
+
+            // Add the monthly calories entry
+            lineEntries.add(Entry(i.toFloat(), caloriesForTheMonth.toFloat()))
+
+            // Add BMR (TDEE) entry for each month (horizontal line at TDEE value for the whole month)
+            bmrEntries.add(Entry(i.toFloat(), (tdee * daysInMonth[i]).toFloat()))
+        }
+
+        // Create LineDataSets for both the monthly calories and BMR
+        val lineDataSet = LineDataSet(lineEntries, "Monthly Calories")
+        val bmrDataSet = LineDataSet(bmrEntries, "BMR (TDEE)")
+
+        // Customize the Monthly Calories LineDataSet
+        lineDataSet.color = primaryColor
+        lineDataSet.valueTextColor = Color.BLACK
+        lineDataSet.valueTextSize = 10f
+        lineDataSet.setDrawCircles(true)
+        lineDataSet.setDrawFilled(false)
+
+        // Customize the BMR (TDEE) LineDataSet
+        bmrDataSet.color = primaryColor
+        bmrDataSet.setDrawCircles(false)
+        bmrDataSet.lineWidth = 2f
+        bmrDataSet.valueTextColor = Color.BLACK
+
+        // Set both datasets (Monthly Calories and BMR) to the LineChart
+        val lineData = LineData(lineDataSet, bmrDataSet)
+        lineChart.data = lineData
+
+        // Set the Y-axis to start from 0
+        val yAxis = lineChart.axisLeft
+        yAxis.axisMinimum = 0f
+
+        // Set the X-axis labels for the months (January to December)
+        val monthLabels = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val xAxis = lineChart.xAxis
+        xAxis.valueFormatter = IndexAxisValueFormatter(monthLabels)
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.granularity = 1f
+
+        // Optionally, disable the right Y-axis
+        lineChart.axisRight.isEnabled = false
+
+        // Refresh the chart to apply the changes
+        lineChart.invalidate()
+    }
+
+    private fun getMonthFromDate(dateString: String): Int {
+        // Example: "2024-11-15" -> 10 (November is month 10 in 0-based indexing)
+        val date = LocalDate.parse(dateString)  // Parse the date string into a LocalDate
+        return date.monthValue - 1  // Month value is 1-based (January = 1), so subtract 1 for 0-based indexing
+    }
+
+    private fun getDayOfYear(dateString: String): Int {
+        // Example: "2024-11-15" -> 320 (November 15th is the 320th day of the year)
+        val date = LocalDate.parse(dateString)  // Parse the date string into a LocalDate
+        return date.dayOfYear  // Get the day of the year (1 to 365 or 366)
+    }
+
+    private fun initMonthlyChart(foodList: List<Food>, tdee: Int) {
+        // Find the LineChart by its ID
+        val lineChart = binding.monthlyChart  // Assuming you have a monthly chart in your layout
+
+        // Get the primary color from the theme using ResourcesUtil
+        val primaryColor = ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
+
+        // Create a list of entries for the LineChart (each entry represents a day's total calories)
+        val lineEntries = ArrayList<Entry>()
+        val bmrEntries = ArrayList<Entry>() // Entries for the TDEE line (BMR)
+
+        // Create an array to track total calories for each day of the month (31 days)
+        val dailyCalories = IntArray(31)  // Array for storing total calories for each day
+
+        // Get the current month
+        val today = LocalDate.now(ZoneId.systemDefault())  // Get the current date
+        val daysInMonth = today.lengthOfMonth()  // Get the number of days in the current month (28, 29, 30, or 31)
+
+        Log.d("ChartDebug", "Days in Month: $daysInMonth")
+
+        // Group food items by the day of the month and sum the calories for each day
+        for (food in foodList) {
+            val dayOfMonth = getDayOfMonth(food.date)  // Assuming the date is in a format that can be used here
+            Log.d("ChartDebug", "Food Date: ${food.date}, Day of Month: $dayOfMonth")
+
+            // Add the food's calories to the appropriate day
+            if (dayOfMonth in 1..daysInMonth) {
+                dailyCalories[dayOfMonth - 1] += food.calories
+            }
+        }
+
+        // Log the daily calories for debugging
+        Log.d("ChartDebug", "Daily Calories: ${dailyCalories.joinToString(", ")}")
+
+        // Add entries for each day of the month (up to 31 days)
+        for (i in 0 until daysInMonth) {
+            val caloriesForTheDay = if (dailyCalories[i] == 0) tdee else dailyCalories[i]
+
+            lineEntries.add(Entry(i.toFloat(), caloriesForTheDay.toFloat()))
+            bmrEntries.add(Entry(i.toFloat(), tdee.toFloat()))
+        }
+
+        // Create LineDataSets for both the daily calories and BMR
+        val lineDataSet = LineDataSet(lineEntries, "Daily Calories")
+        val bmrDataSet = LineDataSet(bmrEntries, "BMR (TDEE)")
+
+        lineDataSet.color = primaryColor
+        lineDataSet.valueTextColor = Color.BLACK
+        lineDataSet.valueTextSize = 10f
+        lineDataSet.setDrawCircles(true)
+        lineDataSet.setDrawFilled(false)
+
+        bmrDataSet.color = primaryColor
+        bmrDataSet.setDrawCircles(false)
+        bmrDataSet.lineWidth = 2f
+        bmrDataSet.valueTextColor = Color.BLACK
+
+        // Set both datasets (Daily Calories and BMR) to the LineChart
+        val lineData = LineData(lineDataSet, bmrDataSet)
+        lineChart.data = lineData
+
+        // Set the Y-axis to start from 0
+        val yAxis = lineChart.axisLeft
+        yAxis.axisMinimum = 0f
+
+        // Set the X-axis labels for the days of the month (1 to 31)
+        val monthLabels = (1..daysInMonth).map { it.toString() }
+        val xAxis = lineChart.xAxis
+        xAxis.valueFormatter = IndexAxisValueFormatter(monthLabels)
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.granularity = 1f
+
+        // Optionally, disable the right Y-axis
+        lineChart.axisRight.isEnabled = false
+
+        // Refresh the chart to apply the changes
+        lineChart.invalidate()
+    }
+
+    private fun getDayOfMonth(dateString: String): Int {
+        // Example: "2024-11-15" -> 15
+        val date = LocalDate.parse(dateString)  // Parse the date string into a LocalDate
+        return date.dayOfMonth  // Return the day of the month (1 to 31)
     }
 
     private fun initWeeklyChart(foodList: List<Food>, tdee: Int) {

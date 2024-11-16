@@ -63,5 +63,35 @@
             android:layout_height="wrap_content"
             app:layout_constraintTop_toBottomOf="@id/dailyChart" />
 
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/monthlyChart"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <include
+            android:id="@+id/monthlySummary"
+            layout="@layout/view_calorie_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/dailyChart" />
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/yearlyChart"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <include
+            android:id="@+id/yearlySummary"
+            layout="@layout/view_calorie_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/dailyChart" />
+
     </LinearLayout>
 </ScrollView>
