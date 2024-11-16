@@ -18,6 +18,11 @@
     <string name="save_changes">Save Changes</string>
     <string name="estimated_weight_gained">Estimated weight gained</string>
     <string name="estimated_weight_lost">Estimated weight lost</string>
+    <string name="height_cm">Height (cm)</string>
+    <string name="height_in">Height (in)</string>
+    <string name="weight_kg">Weight (kg)</string>
+    <string name="weight_lb">Weight (lbs)</string>
+
 
 
     <string-array name="gender_array">
