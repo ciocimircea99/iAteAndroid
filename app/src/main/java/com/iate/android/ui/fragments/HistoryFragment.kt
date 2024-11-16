@@ -61,7 +61,7 @@ class HistoryFragment :
                 val userSettings = foodListAndUserSettings.second
 
                 val totalCalories = foodList.sumOf { it.calories }
-                val calorieDeficit = userSettings.tdee - totalCalories
+                val calorieDeficit = (userSettings.tdee * 7) - totalCalories
 
                 binding.weeklySummary.calories.text = totalCalories.toString()
                 binding.weeklySummary.bmr.text = (userSettings.tdee * 7).toString()
@@ -90,21 +90,33 @@ class HistoryFragment :
         val lineChart = binding.weeklyChart
 
         // Get the primary color from the theme using ResourcesUtil
-        val primaryColor = ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
+        val primaryColor =
+            ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
 
         // Create a list of entries for the LineChart (each entry represents a day's total calories)
         val lineEntries = ArrayList<Entry>()
+        val bmrEntries = ArrayList<Entry>() // Entries for the TDEE line (BMR)
 
         // Create an array to track total calories for each day (7 days in a week)
         val dailyCalories = IntArray(7) // Array for storing total calories for each day
 
+        // Get today's day index (0 = Monday, ..., 6 = Sunday)
+        val todayIndex =
+            LocalDate.now().dayOfWeek.value % 7 // 1 = Monday, 7 = Sunday (converted to 0-6 range)
+
+        // Calculate the start of the week (i.e., Wednesday)
+        val startOfWeekIndex =
+            (todayIndex - 3 + 7) % 7  // Shift to Wednesday as the start of the week
+
         // Group food items by the day of the week and sum the calories for each day
         for (food in foodList) {
             // Parse the food's date to determine the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-            val dayOfWeek = getDayOfWeek(food.date)  // Assuming the date is in a format that can be used here
+            val dayOfWeek =
+                getDayOfWeek(food.date)  // Assuming the date is in a format that can be used here
 
             // Add the food's calories to the appropriate day
-            val dayIndex = dayOfWeek - 1  // Adjust for indexing (1=Monday, 2=Tuesday, ..., 7=Sunday)
+            val dayIndex =
+                (dayOfWeek - 1 + 7) % 7  // Adjust for indexing (0 = Sunday, 6 = Saturday)
             if (dayIndex in 0..6) {
                 dailyCalories[dayIndex] += food.calories
             }
@@ -112,28 +124,31 @@ class HistoryFragment :
 
         // Add 7 entries (one for each day) into the `lineEntries` list
         for (i in 0 until 7) {
-            // Each entry corresponds to one day (0 for Sunday, 1 for Monday, ..., 6 for Saturday)
-            lineEntries.add(Entry(i.toFloat(), dailyCalories[i].toFloat()))
+            // Adjust the day index for chart placement (starting from Wednesday)
+            val adjustedIndex = (startOfWeekIndex + i) % 7
+            lineEntries.add(Entry(i.toFloat(), dailyCalories[adjustedIndex].toFloat()))
+
+            // Add BMR (TDEE) line entry for each day (horizontal line)
+            bmrEntries.add(Entry(i.toFloat(), tdee.toFloat()))
         }
 
-        // Create a LineDataSet from the list of LineEntries
+        // Create LineDataSets for both the daily calories and BMR
         val lineDataSet = LineDataSet(lineEntries, "Daily Calories")
+        val bmrDataSet = LineDataSet(bmrEntries, "BMR (TDEE)")
 
-        // Customize the LineDataSet (you can adjust colors, line width, etc.)
+        // Customize the Daily Calories LineDataSet (you can adjust colors, line width, etc.)
         lineDataSet.color = primaryColor  // Set the color of the line
         lineDataSet.valueTextColor = Color.BLACK  // Set the color of the values (calories)
         lineDataSet.valueTextSize = 10f  // Set the text size of the values
 
-        // Set the line to be smooth (optional)
-        lineDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER)
+        // Customize the BMR (TDEE) LineDataSet
+        bmrDataSet.color = primaryColor // Use the same primary color for the BMR line
+        bmrDataSet.setDrawCircles(false) // Do not draw circles for the BMR line
+        bmrDataSet.lineWidth = 2f // Set BMR line width
+        bmrDataSet.valueTextColor = Color.BLACK // Set text color for the BMR line (optional)
 
-        // Set line width and other customizations
-        lineDataSet.lineWidth = 2f
-        lineDataSet.setDrawCircles(true)  // Show circles for each data point
-        lineDataSet.setCircleColor(primaryColor)  // Set the color of the circles
-
-        // Create LineData with the LineDataSet
-        val lineData = LineData(lineDataSet)
+        // Set both datasets (Daily Calories and BMR) to the LineChart
+        val lineData = LineData(lineDataSet, bmrDataSet)
 
         // Set the data for the LineChart
         lineChart.data = lineData
@@ -149,11 +164,16 @@ class HistoryFragment :
         val yAxis = lineChart.axisLeft
         yAxis.axisMinimum = 0f // Ensure the Y-axis starts at 0
 
-        // Customize the X-axis (e.g., add day labels)
+        // Customize the X-axis (e.g., add day labels and center today)
         val xAxis = lineChart.xAxis
-        xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"))
+        xAxis.valueFormatter =
+            IndexAxisValueFormatter(listOf("Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"))
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.granularity = 1f // Ensure one label per day
+
+        // Center the chart on today (today will be at the center)
+        val offset = todayIndex - 3 // Center the chart so that today (Saturday) is in the center
+        lineChart.moveViewToX(offset.toFloat())  // Move the view to center the chart on today
 
         // Optionally, disable the right Y-axis as it is typically not used in line charts
         lineChart.axisRight.isEnabled = false
@@ -174,11 +194,17 @@ class HistoryFragment :
         val barChart = binding.dailyChart
 
         // Get the primary color from the theme using ResourcesUtil
-        val primaryColor = ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
+        val primaryColor =
+            ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
 
         // Create a list of BarEntry objects (each BarEntry represents a bar in the chart)
         val barEntries = ArrayList<BarEntry>()
-        barEntries.add(BarEntry(0f, totalCalories.toFloat()))  // Total calories (x=0, y=totalCalories)
+        barEntries.add(
+            BarEntry(
+                0f,
+                totalCalories.toFloat()
+            )
+        )  // Total calories (x=0, y=totalCalories)
         barEntries.add(BarEntry(1f, bmr.toFloat()))  // BMR (x=1, y=bmr)
 
         // Create a BarDataSet from the list of BarEntries
