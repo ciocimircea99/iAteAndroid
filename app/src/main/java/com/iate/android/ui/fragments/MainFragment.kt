@@ -44,15 +44,15 @@ class MainFragment :
                 val totalCalories = foodList.sumOf { it.calories }
                 val calorieDeficit = userSettings.tdee - totalCalories
 
-                binding.calories.text = totalCalories.toString()
-                binding.bmr.text = userSettings.tdee.toString()
-                binding.calorieDeficit.text = (calorieDeficit).toString()
-                binding.weightChange.text = (totalCalories / 7700.0).toString()
+                binding.summaryContainer.calories.text = totalCalories.toString()
+                binding.summaryContainer.bmr.text = userSettings.tdee.toString()
+                binding.summaryContainer.calorieDeficit.text = (calorieDeficit).toString()
+                binding.summaryContainer.weightChange.text = (totalCalories / 7700.0).toString()
 
                 if (calorieDeficit < 0) {
-                    binding.labelWeightChange.text = getString(R.string.estimated_weight_gained)
+                    binding.summaryContainer.labelWeightChange.text = getString(R.string.estimated_weight_gained)
                 } else {
-                    binding.labelWeightChange.text = getString(R.string.estimated_weight_lost)
+                    binding.summaryContainer.labelWeightChange.text = getString(R.string.estimated_weight_lost)
                 }
             }
         }
