@@ -1,29 +1,57 @@
 package com.iate.android.ui.viewmodel
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.iate.android.data.database.FoodDao
+import com.iate.android.data.database.UserSettingsDao
 import com.iate.android.data.database.entity.Food
+import com.iate.android.data.database.entity.UserSettings
 import com.iate.android.data.openai.OpenAIApi
 import com.iate.android.data.openai.model.ChatMessage
 import com.iate.android.data.openai.model.CompletionRequest
 import com.iate.android.ui.base.BaseViewModel
-import com.iate.android.util.SingleLiveEvent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val foodDao: FoodDao,
-    private val openAIApi: OpenAIApi
+    private val openAIApi: OpenAIApi,
+    private val userSettingsDao: UserSettingsDao,
 ) : BaseViewModel() {
 
     private val _selectedDate = MutableLiveData<String>()
     val selectedDate: LiveData<String> = _selectedDate
 
     private val _foodList = MutableLiveData<List<Food>>()
-    val foodList: LiveData<List<Food>> = _foodList
+    private val _userSettings = MutableLiveData<UserSettings>()
+
+    val foodListAndUserSettings = MediatorLiveData<Pair<List<Food>, UserSettings>>()
+
+    init {
+        // Initialize MediatorLiveData to combine food list and user settings
+        foodListAndUserSettings.addSource(_foodList) { value1 ->
+            val value2 = _userSettings.value
+            if (value2 != null) {
+                foodListAndUserSettings.value = Pair(value1, value2)
+            }
+        }
+
+        foodListAndUserSettings.addSource(_userSettings) { value2 ->
+            val value1 = _foodList.value
+            if (value1 != null) {
+                foodListAndUserSettings.value = Pair(value1, value2)
+            }
+        }
+
+        // Fetch initial user settings if necessary
+        fetchUserSettings()
+    }
+
+    // Fetch user settings from the database
+    private fun fetchUserSettings() = runCachingCoroutine {
+        userSettingsDao.getUserSettings()?.let {
+            _userSettings.postValue(it)
+        }
+    }
 
     fun setDate(date: String) {
         _selectedDate.value = date

@@ -26,7 +26,10 @@ class MainFragment :
 
         // Observe food list updates
         lifecycleScope.launch {
-            viewModel.foodList.observe(viewLifecycleOwner) { foodList ->
+            viewModel.foodListAndUserSettings.observe(viewLifecycleOwner) { foodListAndUserSettings ->
+                val foodList = foodListAndUserSettings.first
+                val userSettings = foodListAndUserSettings.second
+
                 binding.foodContainer.removeAllViews()
                 foodList.forEach { food ->
                     binding.foodContainer.addView(
@@ -36,6 +39,20 @@ class MainFragment :
                             }
                         }
                     )
+                }
+
+                val totalCalories = foodList.sumOf { it.calories }
+                val calorieDeficit = userSettings.tdee - totalCalories
+
+                binding.calories.text = totalCalories.toString()
+                binding.bmr.text = userSettings.tdee.toString()
+                binding.calorieDeficit.text = (calorieDeficit).toString()
+                binding.weightChange.text = (totalCalories / 7700.0).toString()
+
+                if (calorieDeficit < 0) {
+                    binding.labelWeightChange.text = getString(R.string.estimated_weight_gained)
+                } else {
+                    binding.labelWeightChange.text = getString(R.string.estimated_weight_lost)
                 }
             }
         }

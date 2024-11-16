@@ -16,6 +16,8 @@
     <string name="weight">Weight</string>
     <string name="activity_level">Activity Level</string>
     <string name="save_changes">Save Changes</string>
+    <string name="estimated_weight_gained">Estimated weight gained</string>
+    <string name="estimated_weight_lost">Estimated weight lost</string>
 
 
     <string-array name="gender_array">
