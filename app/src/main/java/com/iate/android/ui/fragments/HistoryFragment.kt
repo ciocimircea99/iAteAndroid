@@ -2,6 +2,7 @@ package com.iate.android.ui.fragments
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -23,6 +24,9 @@ import com.iate.android.util.ResourcesUtil
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import kotlin.math.abs
 
 class HistoryFragment :
     BaseFragment<FragmentHistoryBinding, HistoryViewModel>(FragmentHistoryBinding::inflate) {
@@ -44,7 +48,7 @@ class HistoryFragment :
                 binding.dailySummary.calories.text = totalCalories.toString()
                 binding.dailySummary.bmr.text = userSettings.tdee.toString()
                 binding.dailySummary.calorieDeficit.text = (calorieDeficit).toString()
-                binding.dailySummary.weightChange.text = (totalCalories / 7700.0).toString()
+                binding.dailySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
 
                 if (calorieDeficit < 0) {
                     binding.dailySummary.labelWeightChange.text =
@@ -66,7 +70,7 @@ class HistoryFragment :
                 binding.weeklySummary.calories.text = totalCalories.toString()
                 binding.weeklySummary.bmr.text = (userSettings.tdee * 7).toString()
                 binding.weeklySummary.calorieDeficit.text = (calorieDeficit).toString()
-                binding.weeklySummary.weightChange.text = (totalCalories / 7700.0).toString()
+                binding.weeklySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
 
                 if (calorieDeficit < 0) {
                     binding.weeklySummary.labelWeightChange.text =
@@ -90,8 +94,7 @@ class HistoryFragment :
         val lineChart = binding.weeklyChart
 
         // Get the primary color from the theme using ResourcesUtil
-        val primaryColor =
-            ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
+        val primaryColor = ResourcesUtil.getThemeColor(requireContext(), android.R.attr.colorPrimary)
 
         // Create a list of entries for the LineChart (each entry represents a day's total calories)
         val lineEntries = ArrayList<Entry>()
@@ -100,35 +103,46 @@ class HistoryFragment :
         // Create an array to track total calories for each day (7 days in a week)
         val dailyCalories = IntArray(7) // Array for storing total calories for each day
 
-        // Get today's day index (0 = Monday, ..., 6 = Sunday)
-        val todayIndex =
-            LocalDate.now().dayOfWeek.value % 7 // 1 = Monday, 7 = Sunday (converted to 0-6 range)
+        // Get today's date using ZonedDateTime in the local timezone, without time component
+        val today = LocalDate.now(ZoneId.systemDefault())  // Get the current date in the local time zone
+        val todayIndex = today.dayOfWeek.value % 7  // Get the 0-6 range for today (1 = Monday, 7 = Sunday)
+
+        Log.d("ChartDebug", "Today Index: $todayIndex")  // Log today's index
 
         // Calculate the start of the week (i.e., Wednesday)
-        val startOfWeekIndex =
-            (todayIndex - 3 + 7) % 7  // Shift to Wednesday as the start of the week
+        val startOfWeekIndex = (todayIndex - 4 + 7) % 7  // Shift to Wednesday as the start of the week
+
+        Log.d("ChartDebug", "Start of Week Index (Wednesday): $startOfWeekIndex")  // Log start of week index
 
         // Group food items by the day of the week and sum the calories for each day
         for (food in foodList) {
             // Parse the food's date to determine the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-            val dayOfWeek =
-                getDayOfWeek(food.date)  // Assuming the date is in a format that can be used here
+            val dayOfWeek = getDayOfWeek(food.date)  // Assuming the date is in a format that can be used here
+            Log.d("ChartDebug", "Food Date: ${food.date}, Day of Week: $dayOfWeek")  // Log food date and day of week
 
             // Add the food's calories to the appropriate day
-            val dayIndex =
-                (dayOfWeek - 1 + 7) % 7  // Adjust for indexing (0 = Sunday, 6 = Saturday)
+            val dayIndex = (dayOfWeek - 1 + 7) % 7  // Adjust for indexing (0 = Sunday, 6 = Saturday)
             if (dayIndex in 0..6) {
                 dailyCalories[dayIndex] += food.calories
             }
         }
 
+        // Log the daily calories for debugging
+        Log.d("ChartDebug", "Daily Calories: ${dailyCalories.joinToString(", ")}")
+
         // Add 7 entries (one for each day) into the `lineEntries` list
         for (i in 0 until 7) {
             // Adjust the day index for chart placement (starting from Wednesday)
             val adjustedIndex = (startOfWeekIndex + i) % 7
-            lineEntries.add(Entry(i.toFloat(), dailyCalories[adjustedIndex].toFloat()))
+            Log.d("ChartDebug", "Adding Entry for Day $i: ${dailyCalories[adjustedIndex]} calories at index $adjustedIndex")  // Log entry addition
 
-            // Add BMR (TDEE) line entry for each day (horizontal line)
+            // Check if dailyCalories for the day is 0, and if so, use the TDEE value for that day
+            val caloriesForTheDay = if (dailyCalories[adjustedIndex] == 0) tdee else dailyCalories[adjustedIndex]
+
+            // Add the daily calories or TDEE as the entry for that day
+            lineEntries.add(Entry(i.toFloat(), caloriesForTheDay.toFloat()))
+
+            // Add BMR (TDEE) line entry for each day (horizontal line at tdee value)
             bmrEntries.add(Entry(i.toFloat(), tdee.toFloat()))
         }
 
@@ -140,6 +154,10 @@ class HistoryFragment :
         lineDataSet.color = primaryColor  // Set the color of the line
         lineDataSet.valueTextColor = Color.BLACK  // Set the color of the values (calories)
         lineDataSet.valueTextSize = 10f  // Set the text size of the values
+
+        // Ensure the line is continuous even between entries with value 0
+        lineDataSet.setDrawCircles(true) // Draw circles on each point (optional)
+        lineDataSet.setDrawFilled(false) // Ensure that the line is drawn even if the values are zero
 
         // Customize the BMR (TDEE) LineDataSet
         bmrDataSet.color = primaryColor // Use the same primary color for the BMR line
@@ -164,16 +182,29 @@ class HistoryFragment :
         val yAxis = lineChart.axisLeft
         yAxis.axisMinimum = 0f // Ensure the Y-axis starts at 0
 
-        // Customize the X-axis (e.g., add day labels and center today)
+        // Generate dynamic day labels based on today
+        val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        val weekLabels = mutableListOf<String>()
+        for (i in 0 until 7) {
+            val labelIndex = (startOfWeekIndex + i) % 7
+            weekLabels.add(daysOfWeek[labelIndex])
+        }
+
+        Log.d("ChartDebug", "Week Labels: ${weekLabels.joinToString(", ")}")  // Log the week labels for debugging
+
+        // Set the X-axis labels dynamically (based on today, with today in the center)
         val xAxis = lineChart.xAxis
-        xAxis.valueFormatter =
-            IndexAxisValueFormatter(listOf("Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"))
+        xAxis.valueFormatter = IndexAxisValueFormatter(weekLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.granularity = 1f // Ensure one label per day
 
         // Center the chart on today (today will be at the center)
-        val offset = todayIndex - 3 // Center the chart so that today (Saturday) is in the center
-        lineChart.moveViewToX(offset.toFloat())  // Move the view to center the chart on today
+        val offset = (todayIndex - 3 + 7) % 7  // Calculate the correct offset to center the chart on today
+        Log.d("ChartDebug", "Offset: $offset")  // Log the offset calculation
+        val totalEntries = 7
+        val centerOffset = (totalEntries / 2) - offset
+        Log.d("ChartDebug", "Center Offset: $centerOffset")  // Log the center offset for debugging
+        lineChart.moveViewToX(centerOffset.toFloat())  // Adjust the X view to center on today
 
         // Optionally, disable the right Y-axis as it is typically not used in line charts
         lineChart.axisRight.isEnabled = false
