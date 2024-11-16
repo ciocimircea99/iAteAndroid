@@ -4,7 +4,9 @@ import androidx.room.Room
 import com.iate.android.BuildConfig
 import com.iate.android.data.database.AppDatabase
 import com.iate.android.data.openai.OpenAIApi
+import com.iate.android.ui.viewmodel.HistoryViewModel
 import com.iate.android.ui.viewmodel.MainViewModel
+import com.iate.android.ui.viewmodel.OnboardingViewModel
 import com.iate.android.ui.viewmodel.SettingsViewModel
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,6 +18,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 val viewModelsModule = module {
     viewModel { MainViewModel(get(),get(),get()) }
     viewModel { SettingsViewModel(get()) }
+    viewModel { HistoryViewModel(get(),get()) }
+    viewModel { OnboardingViewModel() }
 }
 
 val databaseModule = module {

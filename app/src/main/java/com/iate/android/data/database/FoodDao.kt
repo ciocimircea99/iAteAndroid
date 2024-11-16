@@ -13,13 +13,13 @@ interface FoodDao {
     suspend fun addFood(food: Food)
 
     @Query("SELECT * FROM foods")
-    fun getFoods(): LiveData<List<Food>>
+    fun getFoods(): List<Food>
 
     @Query("SELECT * FROM foods WHERE date = :date")
     fun getFoodsByDate(date: String): List<Food>
 
     @Query("SELECT * FROM foods WHERE date BETWEEN :startDate AND :endDate")
-    fun getFoodsByDateRange(startDate: String, endDate: String): LiveData<List<Food>>
+    fun getFoodsByDateRange(startDate: String, endDate: String): List<Food>
 
     @Delete
     suspend fun deleteFood(food: Food)
