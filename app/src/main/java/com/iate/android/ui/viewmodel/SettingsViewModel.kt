@@ -14,37 +14,8 @@ class SettingsViewModel(
     private val userSettingsDao: UserSettingsDao
 ) : BaseViewModel() {
 
-    private val _errorResult = SingleLiveEvent<Exception?>()
-    val errorResult: MutableLiveData<Exception?> = _errorResult
-
     private val _userSettings = MutableLiveData<UserSettings>()
     val userSettings: LiveData<UserSettings> = _userSettings
-
-    init {
-        fetchUserSettings()
-    }
-
-    private fun fetchUserSettings() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val userSettings = userSettingsDao.getUserSettings() ?: UserSettings(
-                    id = 1,
-                    metric = true,
-                    age = 30,
-                    gender = "Male",
-                    height = 170,
-                    weight = 70,
-                    activityLevel = "Sedentary",
-                    bmr = 0,
-                    tdee = 0
-                )
-                _userSettings.postValue(userSettings)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _errorResult.postValue(e)
-            }
-        }
-    }
 
     private val activityLevels = mapOf(
         "Sedentary" to 1.2,
@@ -54,6 +25,24 @@ class SettingsViewModel(
         "Very Active" to 1.9
     )
 
+    init {
+        fetchUserSettings()
+    }
+
+    private fun fetchUserSettings() = runCachingCoroutine {
+        val userSettings = userSettingsDao.getUserSettings() ?: UserSettings(
+            id = 1,
+            metric = true,
+            age = 30,
+            gender = "Male",
+            height = 170,
+            weight = 70,
+            activityLevel = "Sedentary",
+            bmr = 0,
+            tdee = 0
+        )
+        _userSettings.postValue(userSettings)
+    }
 
     private fun calculateBMR(age: Int, gender: String, height: Int, weight: Int): Double {
         return if (gender == "Male") {
@@ -74,27 +63,21 @@ class SettingsViewModel(
         height: Int,
         weight: Int,
         activityLevel: String
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val bmr = calculateBMR(age, gender, height, weight)
-                userSettingsDao.setUserSettings(
-                    UserSettings(
-                        id = 1,
-                        metric = metric,
-                        age = age,
-                        gender = gender,
-                        height = height,
-                        weight = weight,
-                        activityLevel = activityLevel,
-                        bmr = bmr.toInt(),
-                        tdee = calculateTDEE(bmr, activityLevel).toInt()
-                    )
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _errorResult.postValue(e)
-            }
-        }
+    ) = runCachingCoroutine {
+        val bmr = calculateBMR(age, gender, height, weight)
+        userSettingsDao.setUserSettings(
+            UserSettings(
+                id = 1,
+                metric = metric,
+                age = age,
+                gender = gender,
+                height = height,
+                weight = weight,
+                activityLevel = activityLevel,
+                bmr = bmr.toInt(),
+                tdee = calculateTDEE(bmr, activityLevel).toInt()
+            )
+        )
+        postNavigationCommand(NAVIGATE_BACK)
     }
 }

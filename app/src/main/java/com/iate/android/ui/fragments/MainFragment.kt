@@ -38,13 +38,6 @@ class MainFragment :
                     )
                 }
             }
-
-            viewModel.errorResult.observe(viewLifecycleOwner) { error ->
-                error?.let {
-                    Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG)
-                        .show()
-                }
-            }
         }
 
         binding.buttonSend.setOnClickListener {

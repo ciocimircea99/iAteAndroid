@@ -18,7 +18,6 @@ class SettingsFragment :
 
     override val viewModel: SettingsViewModel by viewModel()
 
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Use `binding` and `viewModel`
@@ -39,13 +38,6 @@ class SettingsFragment :
                         userSettings.activityLevel
                     )
                 )
-            }
-
-            viewModel.errorResult.observe(viewLifecycleOwner) { error ->
-                error?.let {
-                    Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG)
-                        .show()
-                }
             }
         }
 
