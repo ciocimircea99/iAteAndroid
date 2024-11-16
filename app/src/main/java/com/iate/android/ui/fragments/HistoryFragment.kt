@@ -166,40 +166,86 @@ class HistoryFragment :
                 // Create an array to track total calories for each day of the year
                 val dailyCalories = IntArray(daysInYear)  // Array for storing calories for each day of the year
 
-                // Group food items by day of the year and sum the calories for each day
+                // Sum the calories for each day based on food entries
                 for (food in foodList) {
-                    val dayOfYear = getDayOfYear(food.date)  // Get the day of the year (1 to 365 or 366)
-                    if (dayOfYear in 1..daysInYear) {
-                        dailyCalories[dayOfYear - 1] += food.calories  // Add the food's calories to the appropriate day
+                    val dayOfYear = getDayOfYear(food.date) - 1  // Adjust to 0-based index
+                    if (dayOfYear in 0 until daysInYear) {  // Ensure it's within the correct bounds
+                        dailyCalories[dayOfYear] += food.calories  // Add the food's calories to the appropriate day
                     }
                 }
 
-                // Calculate total calories for the year, including days with no food entries (assuming TDEE for those days)
-                var totalCalories = 0
-                for (i in 0 until daysInYear) {
-                    totalCalories += if (dailyCalories[i] == 0) userSettings.tdee else dailyCalories[i]
+                // Define the days in each month (adjust February days for leap year)
+                val daysInMonth = intArrayOf(
+                    31,  // January
+                    if (today.isLeapYear) 29 else 28,  // February
+                    31,  // March
+                    30,  // April
+                    31,  // May
+                    30,  // June
+                    31,  // July
+                    31,  // August
+                    30,  // September
+                    31,  // October
+                    30,  // November
+                    31   // December
+                )
+
+                // Compute cumulative days in the year to map months to days
+                val cumulativeDaysInYear = IntArray(13)
+                cumulativeDaysInYear[0] = 0
+                for (i in 1..12) {
+                    cumulativeDaysInYear[i] = cumulativeDaysInYear[i - 1] + daysInMonth[i - 1]
                 }
 
-                // Estimate the calorie deficit for the year
-                val yearlyBmr = userSettings.tdee * daysInYear  // Total TDEE for the year (TDEE * number of days)
-                val calorieDeficit = yearlyBmr - totalCalories  // Calorie deficit (or surplus)
+                // Initialize variables
+                val totalYearlyBMR = userSettings.tdee * daysInYear
+                var totalCaloriesConsumed = totalYearlyBMR
+
+                // Loop through each month to adjust total calories consumed
+                for (monthIndex in 0 until 12) {
+                    val daysInThisMonth = daysInMonth[monthIndex]
+                    val monthlyBMR = userSettings.tdee * daysInThisMonth
+
+                    val startDayOfYear = cumulativeDaysInYear[monthIndex]
+                    val endDayOfYear = cumulativeDaysInYear[monthIndex + 1] - 1  // Inclusive range
+
+                    // Check if the month has any entries
+                    var hasEntriesForMonth = false
+                    var totalCaloriesInMonth = 0
+
+                    // Sum the calories logged in that month
+                    for (food in foodList) {
+                        val dayOfYear = getDayOfYear(food.date) - 1  // Adjust to 0-based index
+                        if (dayOfYear in startDayOfYear..endDayOfYear) {
+                            hasEntriesForMonth = true
+                            totalCaloriesInMonth += food.calories
+                        }
+                    }
+
+                    if (hasEntriesForMonth) {
+                        // Adjust totalCaloriesConsumed: subtract monthly BMR and add logged calories
+                        totalCaloriesConsumed -= monthlyBMR
+                        totalCaloriesConsumed += totalCaloriesInMonth
+                    }
+                }
+
+                // Calculate the total yearly deficit
+                val totalYearlyDeficit = totalYearlyBMR - totalCaloriesConsumed
 
                 // Estimate weight change (1 kg = 7700 calories)
-                val weightChange = calorieDeficit / 7700.0  // Weight change in kg
+                val weightChange = totalYearlyDeficit / 7700.0  // Weight change in kg
 
                 // Update the yearly summary UI
-                binding.yearlySummary.calories.text = totalCalories.toString()  // Total calories consumed in the year
-                binding.yearlySummary.bmr.text = yearlyBmr.toString()  // Total yearly BMR (TDEE * days in year)
-                binding.yearlySummary.calorieDeficit.text = calorieDeficit.toString()
-                binding.yearlySummary.weightChange.text = weightChange.toString()
+                binding.yearlySummary.calories.text = totalCaloriesConsumed.toString()  // Total calories consumed in the year
+                binding.yearlySummary.bmr.text = totalYearlyBMR.toString()  // Total yearly BMR (TDEE * days in year)
+                binding.yearlySummary.calorieDeficit.text = totalYearlyDeficit.toString()
+                binding.yearlySummary.weightChange.text = String.format("%.2f kg", weightChange)
 
                 // Display estimated weight change (gain or loss)
-                if (calorieDeficit < 0) {
-                    binding.yearlySummary.labelWeightChange.text =
-                        getString(R.string.estimated_weight_gained)
+                binding.yearlySummary.labelWeightChange.text = if (totalYearlyDeficit < 0) {
+                    getString(R.string.estimated_weight_gained)
                 } else {
-                    binding.yearlySummary.labelWeightChange.text =
-                        getString(R.string.estimated_weight_lost)
+                    getString(R.string.estimated_weight_lost)
                 }
 
                 // Initialize the yearly chart with food data and TDEE
@@ -313,7 +359,7 @@ class HistoryFragment :
     private fun getDayOfYear(dateString: String): Int {
         // Example: "2024-11-15" -> 320 (November 15th is the 320th day of the year)
         val date = LocalDate.parse(dateString)  // Parse the date string into a LocalDate
-        return date.dayOfYear  // Get the day of the year (1 to 365 or 366)
+        return date.dayOfYear - 1  // Return day of the year as 0-based index (0 to 365 or 0 to 364)
     }
 
     private fun initMonthlyChart(foodList: List<Food>, tdee: Int) {
