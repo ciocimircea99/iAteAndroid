@@ -14,6 +14,7 @@ import com.iate.android.ui.viewmodel.MainViewModel
 import com.iate.android.util.DateTimeUtil
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import kotlin.math.abs
 
 class MainFragment :
     BaseFragment<FragmentMainBinding, MainViewModel>(FragmentMainBinding::inflate) {
@@ -47,7 +48,7 @@ class MainFragment :
                 binding.summaryContainer.calories.text = totalCalories.toString()
                 binding.summaryContainer.bmr.text = userSettings.tdee.toString()
                 binding.summaryContainer.calorieDeficit.text = (calorieDeficit).toString()
-                binding.summaryContainer.weightChange.text = (totalCalories / 7700.0).toString()
+                binding.summaryContainer.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
 
                 if (calorieDeficit < 0) {
                     binding.summaryContainer.labelWeightChange.text = getString(R.string.estimated_weight_gained)
