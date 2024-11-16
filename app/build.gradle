@@ -1,6 +1,6 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
+    id 'com.android.application' // Ensure this is present
+    id 'kotlin-android'
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp'
 }
@@ -15,7 +15,6 @@ android {
         targetSdk 35
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,14 +26,11 @@ android {
 
     buildTypes {
         debug {
-            // Add the API key to BuildConfig for debug builds
             buildConfigField "String", "OPENAI_API_KEY", "\"${OPENAI_API_KEY}\""
         }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-
-            // Add the API key to BuildConfig for release builds
             buildConfigField "String", "OPENAI_API_KEY", "\"${OPENAI_API_KEY}\""
         }
     }
@@ -77,6 +73,9 @@ dependencies {
     implementation libs.androidx.room.runtime
     implementation libs.androidx.room.ktx
     ksp libs.androidx.room.compiler
+
+    // MPAndroidChart dependency
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
