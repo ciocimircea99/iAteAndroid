@@ -43,33 +43,7 @@ val databaseModule = module {
 
 
 val networkModule = module {
-
     single {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer ${BuildConfig.OPENAI_API_KEY}")
-                    .build()
-                chain.proceed(request)
-            }
-            .build()
-    }
-
-    // Provide Retrofit instance
-    single {
-        Retrofit.Builder()
-            .baseUrl("https://api.openai.com/")
-            .client(get()) // Use OkHttpClient provided by Koin
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    // Provide OpenAIApi interface
-    single {
-        get<Retrofit>().create(OpenAIApi::class.java)
+        OpenAIApi()
     }
 }

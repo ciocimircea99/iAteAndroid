@@ -76,6 +76,10 @@ dependencies {
 
     // MPAndroidChart dependency
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation "com.aallam.openai:openai-client:3.8.2"
+    implementation 'io.ktor:ktor-client-android:2.3.1' // Ktor Android engine
+    implementation 'io.ktor:ktor-client-json:2.3.1' // For JSON support
+    implementation 'io.ktor:ktor-client-serialization:2.3.1'
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit

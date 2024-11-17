@@ -91,7 +91,7 @@ class MainFragment : TakePictureFragment<FragmentMainBinding, MainViewModel>(Fra
     }
 
     override fun onPictureTaken(imageFile: File) {
-        viewModel.addFoodByPicture(imageFile.path) {
+        viewModel.addFoodFromImage(imageFile) {
             deleteImageFile()
         }
     }

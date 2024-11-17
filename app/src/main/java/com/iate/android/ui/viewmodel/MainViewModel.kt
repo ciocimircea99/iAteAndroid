@@ -1,5 +1,6 @@
 package com.iate.android.ui.viewmodel
 
+import android.util.Base64
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
@@ -8,8 +9,6 @@ import com.iate.android.data.database.UserSettingsDao
 import com.iate.android.data.database.entity.Food
 import com.iate.android.data.database.entity.UserSettings
 import com.iate.android.data.openai.OpenAIApi
-import com.iate.android.data.openai.model.ChatMessage
-import com.iate.android.data.openai.model.CompletionRequest
 import com.iate.android.ui.base.BaseViewModel
 import java.io.File
 
@@ -64,34 +63,8 @@ class MainViewModel(
         _foodList.postValue(foods)
     }
 
-    fun addFoodByPicture(imagePath: String, onFoodAddedCallback:()->Unit) = runCachingCoroutine {
-        val imageFile = File(imagePath)
-        val imageByteArray = imageFile.readBytes()
-
-        val request = CompletionRequest(
-            model = "gpt-4o-mini",
-            messages = listOf(
-                ChatMessage(
-                    role = "user",
-                    content = """
-                                You are a GPT model trained in nutrition. You know how much kcalories are in basic foods, 
-                                and can also calculate an approximate number of calories per any meal. 
-                                Given the food picture attached to this message analyze it and taking everything that you can into account especially 
-                                the picture, kcal/g, what could the ingredients be, how many grams are in total, what should the kcal be / 100g then do the math.
-                                Your response should only be in the following format:
-                                Food Name: [meal name]
-                                Calories: [calorie count] kcal
-                                Grams: [weight in grams] g
-                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
-                            """.trimIndent()
-                )
-            ),
-            image = imageByteArray,
-            max_tokens = 150,
-            temperature = 0.5
-        )
-
-        val response = openAIApi.getCompletion(request)
+    fun addFood(foodDescription: String) = runCachingCoroutine {
+        val response = openAIApi.getFoodFromText(foodDescription)
         val messageContent = response.choices.firstOrNull()?.message?.content?.trim()
 
         if (!messageContent.isNullOrEmpty()) {
@@ -110,37 +83,15 @@ class MainViewModel(
             foodDao.addFood(food)
             // Refresh the food list after adding
             fetchFoodsForDate(_selectedDate.value ?: "")
-
-            onFoodAddedCallback()
         } else {
             _errorResult.postValue(Exception("Failed to parse API response"))
         }
     }
 
-    fun addFood(foodDescription: String) = runCachingCoroutine {
-        val request = CompletionRequest(
-            model = "gpt-4o-mini",
-            messages = listOf(
-                ChatMessage(
-                    role = "user",
-                    content = """
-                                You are a GPT model trained in nutrition. You know how much kcalories are in basic foods, 
-                                and can also calculate an approximate number of calories per any meal. 
-                                Given the food description "$foodDescription", take everything into account especially 
-                                the formulation, kcal/g, what could the ingredients be, how many grams are in total, what should the kcal be / 100g then do the math.
-                                Your response should only be in the following format:
-                                Food Name: [meal name]
-                                Calories: [calorie count] kcal
-                                Grams: [weight in grams] g
-                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
-                            """.trimIndent()
-                )
-            ),
-            max_tokens = 150,
-            temperature = 0.5
-        )
-
-        val response = openAIApi.getCompletion(request)
+    fun addFoodFromImage(imageFile: File, onFoodAdded: () -> Unit) = runCachingCoroutine {
+        val fileBytes = imageFile.readBytes()
+        val base64Image = Base64.encodeToString(fileBytes, Base64.DEFAULT)
+        val response = openAIApi.getFoodFromImage(base64Image)
         val messageContent = response.choices.firstOrNull()?.message?.content?.trim()
 
         if (!messageContent.isNullOrEmpty()) {
@@ -159,6 +110,8 @@ class MainViewModel(
             foodDao.addFood(food)
             // Refresh the food list after adding
             fetchFoodsForDate(_selectedDate.value ?: "")
+
+            onFoodAdded()
         } else {
             _errorResult.postValue(Exception("Failed to parse API response"))
         }
