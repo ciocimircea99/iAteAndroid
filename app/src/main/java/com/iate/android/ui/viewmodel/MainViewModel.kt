@@ -78,7 +78,7 @@ class MainViewModel(
                                 Food Name: [meal name]
                                 Calories: [calorie count] kcal
                                 Grams: [weight in grams] g
-                                Provide the meal name, its calorie content, and estimated weight in grams in the format above.
+                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
                             """.trimIndent()
                 )
             ),
