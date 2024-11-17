@@ -9,8 +9,8 @@ data class UserSettings(
     val metric: Boolean,
     val age: Int,
     val gender: String,
-    val height: Int,
-    val weight: Int,
+    val height: Double, // Changed from Int to Double
+    val weight: Double, // Changed from Int to Double
     val activityLevel: String,
     val bmr: Int,
     val tdee: Int,

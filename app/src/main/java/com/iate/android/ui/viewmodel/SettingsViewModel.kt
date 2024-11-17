@@ -2,13 +2,9 @@ package com.iate.android.ui.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
 import com.iate.android.data.database.UserSettingsDao
 import com.iate.android.data.database.entity.UserSettings
 import com.iate.android.ui.base.BaseViewModel
-import com.iate.android.util.SingleLiveEvent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val userSettingsDao: UserSettingsDao
@@ -35,8 +31,8 @@ class SettingsViewModel(
             metric = true,
             age = 30,
             gender = "Male",
-            height = 170,
-            weight = 70,
+            height = 170.0,
+            weight = 70.0,
             activityLevel = "Sedentary",
             bmr = 0,
             tdee = 0
@@ -44,7 +40,8 @@ class SettingsViewModel(
         _userSettings.postValue(userSettings)
     }
 
-    private fun calculateBMR(age: Int, gender: String, height: Int, weight: Int): Double {
+    private fun calculateBMR(age: Int, gender: String, height: Double, weight: Double): Double {
+        // Height in cm, weight in kg
         return if (gender == "Male") {
             88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
         } else {
@@ -60,11 +57,12 @@ class SettingsViewModel(
         metric: Boolean,
         age: Int,
         gender: String,
-        height: Int,
-        weight: Int,
+        height: Double,
+        weight: Double,
         activityLevel: String
     ) = runCachingCoroutine {
         val bmr = calculateBMR(age, gender, height, weight)
+        val tdee = calculateTDEE(bmr, activityLevel)
         userSettingsDao.setUserSettings(
             UserSettings(
                 id = 1,
@@ -75,7 +73,7 @@ class SettingsViewModel(
                 weight = weight,
                 activityLevel = activityLevel,
                 bmr = bmr.toInt(),
-                tdee = calculateTDEE(bmr, activityLevel).toInt()
+                tdee = tdee.toInt()
             )
         )
         postNavigationCommand(NAVIGATE_BACK)

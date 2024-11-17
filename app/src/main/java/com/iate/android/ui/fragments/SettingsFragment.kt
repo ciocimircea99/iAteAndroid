@@ -11,6 +11,7 @@ import com.iate.android.ui.base.BaseFragment
 import com.iate.android.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import kotlin.math.roundToInt
 
 class SettingsFragment :
     BaseFragment<FragmentSettingsBinding, SettingsViewModel>(FragmentSettingsBinding::inflate) {
@@ -31,8 +32,8 @@ class SettingsFragment :
                 binding.switchMetric.isChecked = isMetric
 
                 // Store the original values
-                originalHeightInCm = userSettings.height.toDouble()
-                originalWeightInKg = userSettings.weight.toDouble()
+                originalHeightInCm = userSettings.height
+                originalWeightInKg = userSettings.weight
 
                 // Update labels based on unit system
                 updateUnitLabels()
@@ -59,31 +60,42 @@ class SettingsFragment :
             updateHeightAndWeightInputs()
         }
 
-        // Add text change listeners to update original values when user edits them
-        binding.heightInput.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                updateOriginalHeight()
-            }
-        }
-
-        binding.weightInput.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                updateOriginalWeight()
-            }
-        }
-
         binding.buttonBack.setOnClickListener {
             findNavController().popBackStack()
         }
 
         binding.buttonSave.setOnClickListener {
-            // Get the input values and convert to metric if needed
+            // Get the input values directly from the input fields
             val age = binding.ageInput.text.toString().toIntOrNull() ?: 0
             val gender = binding.genderSpinner.selectedItem.toString()
             val activityLevel = binding.activityLevelSpinner.selectedItem.toString()
 
-            val heightInCm = originalHeightInCm.toInt()
-            val weightInKg = originalWeightInKg.toInt()
+            val heightText = binding.heightInput.text.toString()
+            val weightText = binding.weightInput.text.toString()
+
+            val heightValue = heightText.toDoubleOrNull()
+            val weightValue = weightText.toDoubleOrNull()
+
+            if (heightValue == null || weightValue == null) {
+                Toast.makeText(requireContext(), "Please enter valid height and weight values.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val heightInCm: Double
+            val weightInKg: Double
+
+            if (isMetric) {
+                heightInCm = heightValue
+                weightInKg = weightValue
+            } else {
+                // Convert from imperial to metric before saving
+                heightInCm = inchesToCm(heightValue)
+                weightInKg = poundsToKg(weightValue)
+            }
+
+            // Update the original values for consistency
+            originalHeightInCm = heightInCm
+            originalWeightInKg = weightInKg
 
             viewModel.saveUserSettings(
                 isMetric,
@@ -106,32 +118,6 @@ class SettingsFragment :
             val weightInPounds = kgToPounds(originalWeightInKg)
             binding.heightInput.setText(heightInInches.toInt().toString())
             binding.weightInput.setText(weightInPounds.toInt().toString())
-        }
-    }
-
-    private fun updateOriginalHeight() {
-        val heightText = binding.heightInput.text.toString()
-        val heightValue = heightText.toDoubleOrNull()
-
-        if (heightValue != null) {
-            originalHeightInCm = if (isMetric) {
-                heightValue
-            } else {
-                inchesToCm(heightValue)
-            }
-        }
-    }
-
-    private fun updateOriginalWeight() {
-        val weightText = binding.weightInput.text.toString()
-        val weightValue = weightText.toDoubleOrNull()
-
-        if (weightValue != null) {
-            originalWeightInKg = if (isMetric) {
-                weightValue
-            } else {
-                poundsToKg(weightValue)
-            }
         }
     }
 
