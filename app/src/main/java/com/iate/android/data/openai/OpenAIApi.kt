@@ -23,20 +23,39 @@ class OpenAIApi {
 
 
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-4o-mini"),
+            model = ModelId("gpt-4o"),
             messages = listOf(
                 ChatMessage(
                     role = ChatRole.User,
                     content = """
                                 You are a GPT model trained in nutrition. You know how much kcalories are in basic foods, 
-                                and can also calculate an approximate number of calories per any meal. 
-                                Given the food description "$input", take everything into account especially 
-                                the formulation, kcal/g, what could the ingredients be, how many grams are in total, what should the kcal be / 100g then do the math.
-                                Your response should only be in the following format:
-                                Food Name: [meal name]
-                                Calories: [calorie count] kcal
-                                Grams: [weight in grams] g
-                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
+                                and can also calculate an approximate number of calories per any meal from text input or pictures. 
+                                You search the web for the best nutritional databases and you use them in order to make your response 
+                                as accurate as possible. You can analyze food descriptions and pictures to extract the relevant nutritional
+                                data from.
+                                Analyze the food description: $input. 
+                                Your task is to extract:
+                                1. The name of the meal.
+                                2. Compute the calorie content (kcal) of the meal as accurately as possible.
+                                3. Approximate the weight of the food (grams) as accurately as possible.
+                                
+                                Respond only with a valid JSON object in this exact format:
+                                
+                                {
+                                    "foodName": "example",
+                                    "foodCalories": 0,
+                                    "foodWeight": 0
+                                }
+                                
+                                If the nutritional values cannot be determined, respond with:
+                                
+                                {
+                                    "foodName": "Unknown",
+                                    "foodCalories": 0,
+                                    "foodWeight": 0
+                                }
+                                
+                                Do not include any Markdown formatting like ``` or any explanatory text. The response must be raw JSON, nothing else.
                             """.trimIndent()
                 ),
             )
@@ -44,9 +63,9 @@ class OpenAIApi {
         return openAi.chatCompletion(chatCompletionRequest)
     }
 
-    suspend fun getFoodFromImage(base64Image:String): ChatCompletion {
+    suspend fun getFoodFromImage(base64Image: String): ChatCompletion {
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-4o-mini"),
+            model = ModelId("gpt-4o"),
             messages = listOf(
                 ChatMessage(
                     role = ChatRole.User,
@@ -54,14 +73,33 @@ class OpenAIApi {
                         TextPart(
                             text = """
                                 You are a GPT model trained in nutrition. You know how much kcalories are in basic foods, 
-                                and can also calculate an approximate number of calories per any meal. 
-                                Given the food inside the picture attached to this message, take everything into account especially 
-                                the formulation, kcal/g, what could the ingredients be, how many grams are in total, what should the kcal be / 100g then do the math.
-                                Your response should only be in the following format:
-                                Food Name: [meal name]
-                                Calories: [calorie count] kcal
-                                Grams: [weight in grams] g
-                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
+                                and can also calculate an approximate number of calories per any meal from text input or pictures. 
+                                You search the web for the best nutritional databases and you use them in order to make your response 
+                                as accurate as possible. You can analyze food descriptions and pictures to extract the relevant nutritional
+                                data from.
+                                Analyze the image attached. 
+                                Your task is to extract:
+                                1. The name of the meal.
+                                2. Compute the calorie content (kcal) of the meal as accurately as possible.
+                                3. Approximate the weight of the food (grams) as accurately as possible.
+                                
+                                Respond only with a valid JSON object in this exact format:
+                                
+                                {
+                                    "foodName": "example",
+                                    "foodCalories": 0,
+                                    "foodWeight": 0
+                                }
+                                
+                                If the nutritional values cannot be determined, respond with:
+                                
+                                {
+                                    "foodName": "Unknown",
+                                    "foodCalories": 0,
+                                    "foodWeight": 0
+                                }
+                                
+                                Do not include any Markdown formatting like ``` or any explanatory text. The response must be raw JSON, nothing else.
                             """.trimIndent()
                         ),
                         ImagePart(

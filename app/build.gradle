@@ -3,6 +3,7 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp'
+    id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
 android {
@@ -80,6 +81,8 @@ dependencies {
     implementation 'io.ktor:ktor-client-android:2.3.1' // Ktor Android engine
     implementation 'io.ktor:ktor-client-json:2.3.1' // For JSON support
     implementation 'io.ktor:ktor-client-serialization:2.3.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.5.0"
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit

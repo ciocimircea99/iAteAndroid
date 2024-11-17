@@ -8,8 +8,10 @@ import com.iate.android.data.database.FoodDao
 import com.iate.android.data.database.UserSettingsDao
 import com.iate.android.data.database.entity.Food
 import com.iate.android.data.database.entity.UserSettings
+import com.iate.android.data.openai.FoodJson
 import com.iate.android.data.openai.OpenAIApi
 import com.iate.android.ui.base.BaseViewModel
+import kotlinx.serialization.json.Json
 import java.io.File
 
 class MainViewModel(
@@ -65,18 +67,20 @@ class MainViewModel(
 
     fun addFood(foodDescription: String) = runCachingCoroutine {
         val response = openAIApi.getFoodFromText(foodDescription)
-        val messageContent = response.choices.firstOrNull()?.message?.content?.trim()
+        var messageContent = response.choices.firstOrNull()?.message?.content
 
         if (!messageContent.isNullOrEmpty()) {
-            val lines = messageContent.split("\n")
-            val name = lines[0].split(":")[1].trim()
-            val calories = lines[1].split(":")[1].trim().split(" ")[0].toInt()
-            val grams = lines[2].split(":")[1].trim().split(" ")[0].toInt()
+            //parse the json object from messageContent into FoodJson object.
+            messageContent
+                .replace("```json","")
+                .replace("```","")
+                .trim()
+            val foodResponse = Json.decodeFromString<FoodJson>(messageContent)
 
             val food = Food(
-                name = name,
-                calories = calories,
-                grams = grams,
+                name = foodResponse.foodName.toString(),
+                calories = foodResponse.foodCalories ?: 0,
+                grams = foodResponse.foodWeight ?: 0,
                 date = _selectedDate.value ?: ""
             )
 
@@ -92,18 +96,22 @@ class MainViewModel(
         val fileBytes = imageFile.readBytes()
         val base64Image = Base64.encodeToString(fileBytes, Base64.DEFAULT)
         val response = openAIApi.getFoodFromImage(base64Image)
-        val messageContent = response.choices.firstOrNull()?.message?.content?.trim()
+
+        var messageContent = response.choices.firstOrNull()?.message?.content
 
         if (!messageContent.isNullOrEmpty()) {
-            val lines = messageContent.split("\n")
-            val name = lines[0].split(":")[1].trim()
-            val calories = lines[1].split(":")[1].trim().split(" ")[0].toInt()
-            val grams = lines[2].split(":")[1].trim().split(" ")[0].toInt()
+            //parse the json object from messageContent into FoodJson object.
+            messageContent
+                .replace("```json","")
+                .replace("```","")
+                .trim()
+
+            val foodResponse = Json.decodeFromString<FoodJson>(messageContent)
 
             val food = Food(
-                name = name,
-                calories = calories,
-                grams = grams,
+                name = foodResponse.foodName.toString(),
+                calories = foodResponse.foodCalories ?: 0,
+                grams = foodResponse.foodWeight ?: 0,
                 date = _selectedDate.value ?: ""
             )
 
