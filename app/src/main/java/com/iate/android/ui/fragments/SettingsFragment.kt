@@ -18,6 +18,8 @@ class SettingsFragment :
     override val viewModel: SettingsViewModel by viewModel()
 
     private var isMetric: Boolean = true  // To keep track of the current unit system
+    private var originalHeightInCm: Double = 0.0  // Store original height in cm
+    private var originalWeightInKg: Double = 0.0  // Store original weight in kg
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -28,23 +30,15 @@ class SettingsFragment :
                 isMetric = userSettings.metric
                 binding.switchMetric.isChecked = isMetric
 
+                // Store the original values
+                originalHeightInCm = userSettings.height.toDouble()
+                originalWeightInKg = userSettings.weight.toDouble()
+
                 // Update labels based on unit system
                 updateUnitLabels()
 
-                // Set the input fields with converted values
-                val height = userSettings.height.toDouble()
-                val weight = userSettings.weight.toDouble()
-
-                if (isMetric) {
-                    binding.heightInput.setText(height.toInt().toString())
-                    binding.weightInput.setText(weight.toInt().toString())
-                } else {
-                    // Convert from metric to imperial
-                    val heightInInches = cmToInches(height)
-                    val weightInPounds = kgToPounds(weight)
-                    binding.heightInput.setText(heightInInches.toInt().toString())
-                    binding.weightInput.setText(weightInPounds.toInt().toString())
-                }
+                // Set the input fields with appropriate values
+                updateHeightAndWeightInputs()
 
                 binding.ageInput.setText(userSettings.age.toString())
                 binding.genderSpinner.setSelection(
@@ -59,10 +53,23 @@ class SettingsFragment :
         // Add listener to the metric switch
         binding.switchMetric.setOnCheckedChangeListener { _, isChecked ->
             isMetric = isChecked
-            // Convert height and weight values when the toggle is changed
-            convertHeightAndWeight()
             // Update labels to reflect the new unit system
             updateUnitLabels()
+            // Update the input fields with converted values
+            updateHeightAndWeightInputs()
+        }
+
+        // Add text change listeners to update original values when user edits them
+        binding.heightInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateOriginalHeight()
+            }
+        }
+
+        binding.weightInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateOriginalWeight()
+            }
         }
 
         binding.buttonBack.setOnClickListener {
@@ -75,20 +82,8 @@ class SettingsFragment :
             val gender = binding.genderSpinner.selectedItem.toString()
             val activityLevel = binding.activityLevelSpinner.selectedItem.toString()
 
-            val heightInput = binding.heightInput.text.toString().toDoubleOrNull() ?: 0.0
-            val weightInput = binding.weightInput.text.toString().toDoubleOrNull() ?: 0.0
-
-            val heightInCm: Int
-            val weightInKg: Int
-
-            if (isMetric) {
-                heightInCm = heightInput.toInt()
-                weightInKg = weightInput.toInt()
-            } else {
-                // Convert from imperial to metric before saving
-                heightInCm = inchesToCm(heightInput).toInt()
-                weightInKg = poundsToKg(weightInput).toInt()
-            }
+            val heightInCm = originalHeightInCm.toInt()
+            val weightInKg = originalWeightInKg.toInt()
 
             viewModel.saveUserSettings(
                 isMetric,
@@ -101,26 +96,41 @@ class SettingsFragment :
         }
     }
 
-    private fun convertHeightAndWeight() {
-        val heightText = binding.heightInput.text.toString()
-        val weightText = binding.weightInput.text.toString()
+    private fun updateHeightAndWeightInputs() {
+        if (isMetric) {
+            binding.heightInput.setText(originalHeightInCm.toInt().toString())
+            binding.weightInput.setText(originalWeightInKg.toInt().toString())
+        } else {
+            // Convert from metric to imperial
+            val heightInInches = cmToInches(originalHeightInCm)
+            val weightInPounds = kgToPounds(originalWeightInKg)
+            binding.heightInput.setText(heightInInches.toInt().toString())
+            binding.weightInput.setText(weightInPounds.toInt().toString())
+        }
+    }
 
+    private fun updateOriginalHeight() {
+        val heightText = binding.heightInput.text.toString()
         val heightValue = heightText.toDoubleOrNull()
+
+        if (heightValue != null) {
+            originalHeightInCm = if (isMetric) {
+                heightValue
+            } else {
+                inchesToCm(heightValue)
+            }
+        }
+    }
+
+    private fun updateOriginalWeight() {
+        val weightText = binding.weightInput.text.toString()
         val weightValue = weightText.toDoubleOrNull()
 
-        if (heightValue != null && weightValue != null) {
-            if (isMetric) {
-                // Convert from imperial to metric
-                val heightInCm = inchesToCm(heightValue)
-                val weightInKg = poundsToKg(weightValue)
-                binding.heightInput.setText(heightInCm.toInt().toString())
-                binding.weightInput.setText(weightInKg.toInt().toString())
+        if (weightValue != null) {
+            originalWeightInKg = if (isMetric) {
+                weightValue
             } else {
-                // Convert from metric to imperial
-                val heightInInches = cmToInches(heightValue)
-                val weightInPounds = kgToPounds(weightValue)
-                binding.heightInput.setText(heightInInches.toInt().toString())
-                binding.weightInput.setText(weightInPounds.toInt().toString())
+                poundsToKg(weightValue)
             }
         }
     }
