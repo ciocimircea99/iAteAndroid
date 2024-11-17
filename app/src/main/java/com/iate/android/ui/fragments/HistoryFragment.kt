@@ -89,12 +89,13 @@ class HistoryFragment :
                 // Estimate the calorie deficit for the week
                 val weeklyBmr = userSettings.tdee * daysInWeek  // Total TDEE for the week (TDEE * 7 days)
                 val calorieDeficit = weeklyBmr - totalCalories  // Calorie deficit (or surplus)
+                val weightChange = abs(calorieDeficit) / 7700.0
 
                 // Update the weekly summary text views
                 binding.weeklySummary.calories.text = totalCalories.toString()  // Total calories consumed in the week
                 binding.weeklySummary.bmr.text = weeklyBmr.toString()  // Total weekly BMR (TDEE * 7)
                 binding.weeklySummary.calorieDeficit.text = calorieDeficit.toString()
-                binding.weeklySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
+                binding.weeklySummary.weightChange.text = String.format("%.2f kg", weightChange)
 
                 // Display estimated weight change (loss or gain)
                 if (calorieDeficit < 0) {
@@ -136,12 +137,13 @@ class HistoryFragment :
                 // Estimate the calorie deficit for the month
                 val monthlyBmr = userSettings.tdee * daysInMonth  // Total TDEE for the month (TDEE * days in month)
                 val calorieDeficit = monthlyBmr - totalCalories  // Calorie deficit (or surplus)
+                val weightChange = abs(calorieDeficit) / 7700.0  // Weight change in kg
 
                 // Update the monthly summary text views
                 binding.monthlySummary.calories.text = totalCalories.toString()  // Total calories consumed in the month
                 binding.monthlySummary.bmr.text = monthlyBmr.toString()  // Total monthly BMR (TDEE * days in month)
                 binding.monthlySummary.calorieDeficit.text = calorieDeficit.toString()
-                binding.monthlySummary.weightChange.text = (abs(calorieDeficit) / 7700.0).toString()
+                binding.monthlySummary.weightChange.text = String.format("%.2f kg", weightChange)
 
                 // Display estimated weight change (loss or gain)
                 if (calorieDeficit < 0) {
