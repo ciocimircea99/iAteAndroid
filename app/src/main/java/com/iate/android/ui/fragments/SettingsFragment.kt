@@ -110,14 +110,14 @@ class SettingsFragment :
 
     private fun updateHeightAndWeightInputs() {
         if (isMetric) {
-            binding.heightInput.setText(originalHeightInCm.toInt().toString())
-            binding.weightInput.setText(originalWeightInKg.toInt().toString())
+            binding.heightInput.setText(String.format("%.2f", originalHeightInCm))
+            binding.weightInput.setText(String.format("%.2f", originalWeightInKg))
         } else {
             // Convert from metric to imperial
             val heightInInches = cmToInches(originalHeightInCm)
             val weightInPounds = kgToPounds(originalWeightInKg)
-            binding.heightInput.setText(heightInInches.toInt().toString())
-            binding.weightInput.setText(weightInPounds.toInt().toString())
+            binding.heightInput.setText(String.format("%.2f", heightInInches))
+            binding.weightInput.setText(String.format("%.2f", weightInPounds))
         }
     }
 
