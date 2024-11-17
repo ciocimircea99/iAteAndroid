@@ -8,16 +8,17 @@ import androidx.navigation.fragment.findNavController
 import com.iate.android.R
 import com.iate.android.databinding.FragmentMainBinding
 import com.iate.android.ui.base.BaseFragment
+import com.iate.android.ui.base.TakePictureFragment
 import com.iate.android.ui.custom.DateSelectorView
 import com.iate.android.ui.custom.FoodItemView
 import com.iate.android.ui.viewmodel.MainViewModel
 import com.iate.android.util.DateTimeUtil
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.io.File
 import kotlin.math.abs
 
-class MainFragment :
-    BaseFragment<FragmentMainBinding, MainViewModel>(FragmentMainBinding::inflate) {
+class MainFragment : TakePictureFragment<FragmentMainBinding, MainViewModel>(FragmentMainBinding::inflate) {
 
     override val viewModel: MainViewModel by viewModel()
 
@@ -63,6 +64,10 @@ class MainFragment :
             viewModel.addFood(binding.foodDescription.text.toString())
         }
 
+        binding.buttonPicture.setOnClickListener {
+            startTakingPicture()
+        }
+
         binding.buttonHistory.setOnClickListener {
             findNavController().navigate(R.id.action_fragment_main_to_historyFragment)
         }
@@ -79,5 +84,19 @@ class MainFragment :
             }
 
         viewModel.setDate(DateTimeUtil.currentTimeMillisToIso8601())
+    }
+
+    override fun onCameraPermissionDenied() {
+        toast(getString(R.string.camera_permission_denied_please_give_your_permission_inside_settings))
+    }
+
+    override fun onPictureTaken(imageFile: File) {
+        viewModel.addFoodByPicture(imageFile.path) {
+            deleteImageFile()
+        }
+    }
+
+    override fun onPictureFailed() {
+        toast(getString(R.string.failed_to_load_picture))
     }
 }

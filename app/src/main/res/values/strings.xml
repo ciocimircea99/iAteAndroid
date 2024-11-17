@@ -22,7 +22,9 @@
     <string name="height_in">Height (in)</string>
     <string name="weight_kg">Weight (kg)</string>
     <string name="weight_lb">Weight (lbs)</string>
-
+    <string name="picture">Picture</string>
+    <string name="failed_to_load_picture">Failed to load picture!</string>
+    <string name="camera_permission_denied_please_give_your_permission_inside_settings">Camera permission denied. Please give your permission inside settings.</string>
 
 
     <string-array name="gender_array">

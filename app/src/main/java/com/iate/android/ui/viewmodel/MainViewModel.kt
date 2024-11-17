@@ -11,6 +11,7 @@ import com.iate.android.data.openai.OpenAIApi
 import com.iate.android.data.openai.model.ChatMessage
 import com.iate.android.data.openai.model.CompletionRequest
 import com.iate.android.ui.base.BaseViewModel
+import java.io.File
 
 class MainViewModel(
     private val foodDao: FoodDao,
@@ -61,6 +62,59 @@ class MainViewModel(
     private fun fetchFoodsForDate(date: String) = runCachingCoroutine {
         val foods = foodDao.getFoodsByDate(date) // Synchronous query
         _foodList.postValue(foods)
+    }
+
+    fun addFoodByPicture(imagePath: String, onFoodAddedCallback:()->Unit) = runCachingCoroutine {
+        val imageFile = File(imagePath)
+        val imageByteArray = imageFile.readBytes()
+
+        val request = CompletionRequest(
+            model = "gpt-4o-mini",
+            messages = listOf(
+                ChatMessage(
+                    role = "user",
+                    content = """
+                                You are a GPT model trained in nutrition. You know how much kcalories are in basic foods, 
+                                and can also calculate an approximate number of calories per any meal. 
+                                Given the food picture attached to this message analyze it and taking everything that you can into account especially 
+                                the picture, kcal/g, what could the ingredients be, how many grams are in total, what should the kcal be / 100g then do the math.
+                                Your response should only be in the following format:
+                                Food Name: [meal name]
+                                Calories: [calorie count] kcal
+                                Grams: [weight in grams] g
+                                Provide the meal name, its calorie content, and estimated weight in grams in the format above do not use dots or commas in your answer.
+                            """.trimIndent()
+                )
+            ),
+            image = imageByteArray,
+            max_tokens = 150,
+            temperature = 0.5
+        )
+
+        val response = openAIApi.getCompletion(request)
+        val messageContent = response.choices.firstOrNull()?.message?.content?.trim()
+
+        if (!messageContent.isNullOrEmpty()) {
+            val lines = messageContent.split("\n")
+            val name = lines[0].split(":")[1].trim()
+            val calories = lines[1].split(":")[1].trim().split(" ")[0].toInt()
+            val grams = lines[2].split(":")[1].trim().split(" ")[0].toInt()
+
+            val food = Food(
+                name = name,
+                calories = calories,
+                grams = grams,
+                date = _selectedDate.value ?: ""
+            )
+
+            foodDao.addFood(food)
+            // Refresh the food list after adding
+            fetchFoodsForDate(_selectedDate.value ?: "")
+
+            onFoodAddedCallback()
+        } else {
+            _errorResult.postValue(Exception("Failed to parse API response"))
+        }
     }
 
     fun addFood(foodDescription: String) = runCachingCoroutine {
