@@ -70,8 +70,8 @@ class SettingsFragment :
             val gender = binding.genderSpinner.selectedItem.toString()
             val activityLevel = binding.activityLevelSpinner.selectedItem.toString()
 
-            val heightText = binding.heightInput.text.toString()
-            val weightText = binding.weightInput.text.toString()
+            val heightText = binding.heightInput.text.toString().replace(",",".")
+            val weightText = binding.weightInput.text.toString().replace(",",".")
 
             val heightValue = heightText.toDoubleOrNull()
             val weightValue = weightText.toDoubleOrNull()
